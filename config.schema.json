@@ -1,0 +1,32 @@
+{
+  "pluginAlias": "GarageCtrl",
+  "pluginType": "accessory",
+  "singular": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true
+      },
+      "sshHost": {
+        "title": "GarageHost",
+        "type": "string",
+        "required": true
+      },
+      "sshUser": {
+        "title": "SSH Username",
+        "type": "string",
+        "required": true
+      },
+      "sshKey": {
+        "title": "SSH Key location",
+        "type": "string",
+        "required": true
+      }
+    }
+  },
+  "form": null,
+  "display": null
+}

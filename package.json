@@ -1,0 +1,45 @@
+{
+  "private": true,
+  "name": "homebridge-garage-ctrl",
+  "displayName": "Garage Control",
+  "version": "0.0.1",
+  "description": "SSH Control for Garage Door",
+  "main": "dist/accessory.js",
+  "scripts": {
+    "clean": "rimraf ./dist",
+    "build": "rimraf ./dist && tsc",
+    "prepublishOnly": "npm run build",
+    "postpublish": "npm run clean",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Christian Brunner",
+  "engines": {
+    "homebridge": ">=1.0.0"
+  },
+  "keywords": [
+    "homebridge-plugin"
+  ],
+  "license": "ISC",
+  "files": [
+    "LICENSE",
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://homebridge.ws3/"
+  },
+  "bugs": {
+    "url": "http://homebridge.ws3/"
+  },
+  "dependencies": {
+    "simple-ssh": ">=1.0.0",
+    "ts-node": "^10.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "*",
+    "homebridge": "^1.0.4",
+    "nodemon": "^2.0.13",
+    "rimraf": "^3.0.2",
+    "typescript": "^3.9.10"
+  }
+}
