@@ -12,6 +12,7 @@ import {
   Service
 } from "homebridge";
 
+// This seams to be problematic. No clue, how include simple-ssh the right way :(
 import SSH from "simple-ssh";
 //import * as SSH from 'simple-ssh';
 
@@ -25,7 +26,6 @@ export = (api: API) => {
 
 
 class GarageCtrl implements AccessoryPlugin {
-
   private readonly log: Logging;
   private readonly name: string;
   private readonly sshHost: string;
@@ -33,7 +33,6 @@ class GarageCtrl implements AccessoryPlugin {
   private readonly sshKey: string;
   private api: API;
   private isOpen: boolean;
-
   private readonly service: Service;
   private readonly informationService: Service;
 
@@ -66,12 +65,7 @@ class GarageCtrl implements AccessoryPlugin {
   }
 
   handleCurrentDoorStateGet(callback: CharacteristicSetCallback) {
-    // - Characteristic.CurrentDoorState.OPEN
-    // - Characteristic.CurrentDoorState.CLOSED
-    // - Characteristic.CurrentDoorState.OPENING
-    // - Characteristic.CurrentDoorState.CLOSING
-    // - Characteristic.CurrentDoorState.STOPPED
-  
+    // This is just for testing. A soon as I include this statement, I'm running into segfaults
   	var connection = new SSH({
       host: this.sshHost,
       user: this.sshUser,
@@ -89,9 +83,6 @@ class GarageCtrl implements AccessoryPlugin {
   }
   
   handleTargetDoorStateGet(callback: CharacteristicSetCallback) {
-    // - Characteristic.TargetDoorState.OPEN
-    // - Characteristic.TargetDoorState.CLOSED
-  
     this.log.debug('Triggered GET TargetDoorState');
     if (this.isOpen) {
       callback(undefined, hap.Characteristic.TargetDoorState.OPEN);
@@ -115,7 +106,6 @@ class GarageCtrl implements AccessoryPlugin {
   }
 
   handleObstructionDetectedGet(callback: CharacteristicSetCallback) {
-    //this.log.debug('Triggered GET ObstructionDetected');
     callback(undefined, false);
   }
 
@@ -129,6 +119,4 @@ class GarageCtrl implements AccessoryPlugin {
       this.service,
     ];
   }
-
 }
-
