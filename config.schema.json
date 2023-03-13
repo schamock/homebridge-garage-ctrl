@@ -8,8 +8,8 @@
       "name": {
         "title": "Name",
         "type": "string",
-        "default": "GarageCtrl",
-        "required": true
+        "required": true,
+        "description": "Name of your Garage Door"
       },
       "sshHost": {
         "title": "GarageHost",
