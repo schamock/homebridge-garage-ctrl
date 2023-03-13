@@ -31,6 +31,7 @@ class GarageCtrl implements AccessoryPlugin {
   private readonly sshHost: string;
   private readonly sshUser: string;
   private readonly sshKey: string;
+  private readonly connection: any;
   private api: API;
   private isOpen: boolean;
   private readonly service: Service;
@@ -44,9 +45,14 @@ class GarageCtrl implements AccessoryPlugin {
     this.sshKey = config.sshKey;
     this.api = api;
     this.isOpen = true;
+    this.connection = new SSH({
+      host: this.sshHost,
+      user: this.sshUser,
+      key: this.sshKey
+    });
 
     this.service = new hap.Service.GarageDoorOpener(this.name);
-    
+
     this.service.getCharacteristic(hap.Characteristic.CurrentDoorState)
       .on(CharacteristicEventTypes.GET, this.handleCurrentDoorStateGet.bind(this));
 
@@ -66,12 +72,6 @@ class GarageCtrl implements AccessoryPlugin {
 
   handleCurrentDoorStateGet(callback: CharacteristicSetCallback) {
     // This is just for testing. A soon as I include this statement, I'm running into segfaults
-  	var connection = new SSH({
-      host: this.sshHost,
-      user: this.sshUser,
-      key:  this.sshKey
-    });
-    
     this.log.debug('Triggered GET CurrentDoorState');
 
     if (this.isOpen) {
@@ -81,9 +81,14 @@ class GarageCtrl implements AccessoryPlugin {
       callback(undefined, hap.Characteristic.CurrentDoorState.CLOSED);
     }
   }
-  
+
   handleTargetDoorStateGet(callback: CharacteristicSetCallback) {
     this.log.debug('Triggered GET TargetDoorState');
+//    this.connection.exec('echo $PATH', {
+//      out: function (stdout: any) {
+//        console.log(stdout);
+//      }
+//    }).start();
     if (this.isOpen) {
       callback(undefined, hap.Characteristic.TargetDoorState.OPEN);
     }
