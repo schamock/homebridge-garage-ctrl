@@ -57,24 +57,24 @@ class GarageCtrl implements AccessoryPlugin {
 
   handleCurrentDoorStateGet(callback: CharacteristicSetCallback) {
     var status = this.sshCommandExec('status');
-		this.log.debug('Get Current  -- ' + status);
-		
-		if (status == 'closed') {
-			if (this.target == 'open')
-				callback(undefined, hap.Characteristic.CurrentDoorState.OPENING);
-			else
-				callback(undefined, hap.Characteristic.CurrentDoorState.CLOSED);
-		}
-		else if (status == 'open') {
-			if (this.target == 'closed')
-				callback(undefined, hap.Characteristic.CurrentDoorState.CLOSING);
-			else
-				callback(undefined, hap.Characteristic.CurrentDoorState.OPEN);
-		}
-		else {
-			// Fallback if current is unclear
-		  callback(undefined, hap.Characteristic.CurrentDoorState.OPENING);
-		}
+    this.log.debug('Get Current  -- ' + status);
+    
+    if (status == 'closed') {
+      if (this.target == 'open')
+        callback(undefined, hap.Characteristic.CurrentDoorState.OPENING);
+      else
+        callback(undefined, hap.Characteristic.CurrentDoorState.CLOSED);
+    }
+    else if (status == 'open') {
+      if (this.target == 'closed')
+        callback(undefined, hap.Characteristic.CurrentDoorState.CLOSING);
+      else
+        callback(undefined, hap.Characteristic.CurrentDoorState.OPEN);
+    }
+    else {
+      // Fallback if current is unclear
+      callback(undefined, hap.Characteristic.CurrentDoorState.OPENING);
+    }
   }
 
   handleTargetDoorStateGet(callback: CharacteristicSetCallback) {
@@ -114,7 +114,7 @@ class GarageCtrl implements AccessoryPlugin {
   }
   
   sshCommandExec(command: string): string {
-  	var result = execSync(this.sshString + "'" + command + "'", { encoding: 'utf8' });
-  	return result.trim();
+    var result = execSync(this.sshString + "'" + command + "'", { encoding: 'utf8' });
+    return result.trim();
   }
 }
