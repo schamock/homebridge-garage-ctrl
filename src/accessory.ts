@@ -12,9 +12,8 @@ import {
   Service
 } from "homebridge";
 
-// This seams to be problematic. No clue, how include simple-ssh the right way :(
-import SSH from "simple-ssh";
-//import * as SSH from 'simple-ssh';
+import { readFileSync } from 'fs';
+import { execSync } from 'child_process';
 
 
 let hap: HAP;
@@ -28,28 +27,23 @@ export = (api: API) => {
 class GarageCtrl implements AccessoryPlugin {
   private readonly log: Logging;
   private readonly name: string;
-  private readonly sshHost: string;
-  private readonly sshUser: string;
-  private readonly sshKey: string;
-  private readonly connection: any;
+  private readonly sshCon: any;
   private api: API;
   private isOpen: boolean;
   private readonly service: Service;
   private readonly informationService: Service;
+  private sshString: string;
+  private target: string
 
   constructor(log: Logging, config: AccessoryConfig, api: API) {
     this.log = log;
     this.name = config.name;
-    this.sshHost = config.sshHost;
-    this.sshUser = config.sshUser;
-    this.sshKey = config.sshKey;
     this.api = api;
     this.isOpen = true;
-    this.connection = new SSH({
-      host: this.sshHost,
-      user: this.sshUser,
-      key: this.sshKey
-    });
+    this.sshString = 'ssh ' + config.sshUser + '@' + config.sshHost + ' -i ' + config.sshKey + ' ';
+    
+    var currentState = this.sshCommandExec('/usr/local/bin/ctrl_garage_hb.py status');
+    this.target = (currentState == 'closed') ? 'closed' : 'open';
 
     this.service = new hap.Service.GarageDoorOpener(this.name);
 
@@ -66,47 +60,48 @@ class GarageCtrl implements AccessoryPlugin {
     this.informationService = new hap.Service.AccessoryInformation()
       .setCharacteristic(hap.Characteristic.Manufacturer, "Custom Manufacturer")
       .setCharacteristic(hap.Characteristic.Model, "Custom Model");
-
-    log.info("GarageCtrl finished initializing: " + this.name + " / host: " + this.sshHost);
   }
 
   handleCurrentDoorStateGet(callback: CharacteristicSetCallback) {
-    // This is just for testing. A soon as I include this statement, I'm running into segfaults
-    this.log.debug('Triggered GET CurrentDoorState');
-
-    if (this.isOpen) {
-      callback(undefined, hap.Characteristic.CurrentDoorState.OPEN);
-    }
-    else {
-      callback(undefined, hap.Characteristic.CurrentDoorState.CLOSED);
-    }
+    var status = this.sshCommandExec('/usr/local/bin/ctrl_garage_hb.py status');
+		this.log.debug('Get Current  -- ' + status);
+		
+		if (status == 'closed') {
+			if (this.target == 'open')
+				callback(undefined, hap.Characteristic.CurrentDoorState.OPENING);
+			else
+				callback(undefined, hap.Characteristic.CurrentDoorState.CLOSED);
+		}
+		else if (status == 'open') {
+			if (this.target == 'closed')
+				callback(undefined, hap.Characteristic.CurrentDoorState.CLOSING);
+			else
+				callback(undefined, hap.Characteristic.CurrentDoorState.OPEN);
+		}
+		else {
+			// Fallback if current is unclear
+		  callback(undefined, hap.Characteristic.CurrentDoorState.OPENING);
+		}
   }
 
   handleTargetDoorStateGet(callback: CharacteristicSetCallback) {
-    this.log.debug('Triggered GET TargetDoorState');
-//    this.connection.exec('echo $PATH', {
-//      out: function (stdout: any) {
-//        console.log(stdout);
-//      }
-//    }).start();
-    if (this.isOpen) {
-      callback(undefined, hap.Characteristic.TargetDoorState.OPEN);
+    if (this.target == 'closed') {
+      callback(undefined, hap.Characteristic.TargetDoorState.CLOSED);
     }
     else {
-      callback(undefined, hap.Characteristic.TargetDoorState.CLOSED);
+      callback(undefined, hap.Characteristic.TargetDoorState.OPEN);
     }
   }
 
-  handleTargetDoorStateSet(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  handleTargetDoorStateSet(value: CharacteristicValue, callback: CharacteristicSetCallback) {  
     if (value == Characteristic.TargetDoorState.OPEN) {
-      this.isOpen = true;
+      this.target = 'open';
+      this.sshCommandExec('/usr/local/bin/ctrl_garage_hb.py open');
     }
     else {
-      this.isOpen = false;
+      this.target = 'closed';
+      this.sshCommandExec('/usr/local/bin/ctrl_garage_hb.py close');
     }
-
-    this.log.debug('Triggered SET TargetDoorState, Input: ' + value);
-    this.log.debug('Triggered SET TargetDoorState, Result: ' + this.isOpen);
     callback();
   }
 
@@ -123,5 +118,10 @@ class GarageCtrl implements AccessoryPlugin {
       this.informationService,
       this.service,
     ];
+  }
+  
+  sshCommandExec(command: string): string {
+  	var result = execSync(this.sshString + "'" + command + "'", { encoding: 'utf8' });
+  	return result.trim();
   }
 }

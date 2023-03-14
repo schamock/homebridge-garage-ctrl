@@ -45,7 +45,6 @@
     "url": "http://homebridge.ws3/"
   },
   "dependencies": {
-    "simple-ssh": ">=1.0.0",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
