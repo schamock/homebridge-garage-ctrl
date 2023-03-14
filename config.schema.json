@@ -25,6 +25,11 @@
         "title": "SSH Key location",
         "type": "string",
         "required": true
+      },
+      "sshScript": {
+        "title": "SSH Script location",
+        "type": "string",
+        "required": true
       }
     }
   },

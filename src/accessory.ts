@@ -12,9 +12,7 @@ import {
   Service
 } from "homebridge";
 
-import { readFileSync } from 'fs';
 import { execSync } from 'child_process';
-
 
 let hap: HAP;
 
@@ -27,9 +25,7 @@ export = (api: API) => {
 class GarageCtrl implements AccessoryPlugin {
   private readonly log: Logging;
   private readonly name: string;
-  private readonly sshCon: any;
   private api: API;
-  private isOpen: boolean;
   private readonly service: Service;
   private readonly informationService: Service;
   private sshString: string;
@@ -39,11 +35,8 @@ class GarageCtrl implements AccessoryPlugin {
     this.log = log;
     this.name = config.name;
     this.api = api;
-    this.isOpen = true;
-    this.sshString = 'ssh ' + config.sshUser + '@' + config.sshHost + ' -i ' + config.sshKey + ' ';
-    
-    var currentState = this.sshCommandExec('/usr/local/bin/ctrl_garage_hb.py status');
-    this.target = (currentState == 'closed') ? 'closed' : 'open';
+    this.sshString = 'ssh ' + config.sshUser + '@' + config.sshHost + ' -i ' + config.sshKey + ' ' + config.sshScript + ' ';
+    this.target = (this.sshCommandExec('status') == 'closed') ? 'closed' : 'open';
 
     this.service = new hap.Service.GarageDoorOpener(this.name);
 
@@ -63,7 +56,7 @@ class GarageCtrl implements AccessoryPlugin {
   }
 
   handleCurrentDoorStateGet(callback: CharacteristicSetCallback) {
-    var status = this.sshCommandExec('/usr/local/bin/ctrl_garage_hb.py status');
+    var status = this.sshCommandExec('status');
 		this.log.debug('Get Current  -- ' + status);
 		
 		if (status == 'closed') {
@@ -96,11 +89,11 @@ class GarageCtrl implements AccessoryPlugin {
   handleTargetDoorStateSet(value: CharacteristicValue, callback: CharacteristicSetCallback) {  
     if (value == Characteristic.TargetDoorState.OPEN) {
       this.target = 'open';
-      this.sshCommandExec('/usr/local/bin/ctrl_garage_hb.py open');
+      this.sshCommandExec('open');
     }
     else {
       this.target = 'closed';
-      this.sshCommandExec('/usr/local/bin/ctrl_garage_hb.py close');
+      this.sshCommandExec('close');
     }
     callback();
   }
