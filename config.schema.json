@@ -26,8 +26,13 @@
         "type": "string",
         "required": true
       },
-      "sshScript": {
-        "title": "SSH Script location",
+      "sshScriptStatus": {
+        "title": "SSH Script for status",
+        "type": "string",
+        "required": true
+      },
+      "sshScriptControl": {
+        "title": "SSH Script for control",
         "type": "string",
         "required": true
       }

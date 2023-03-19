@@ -28,78 +28,95 @@ class GarageCtrl implements AccessoryPlugin {
   private api: API;
   private readonly service: Service;
   private readonly informationService: Service;
-  private sshString: string;
-  private target: string
+  private Characteristic: typeof Characteristic;
+  
+  private sshHost: string;
+  private sshUser: string;
+  private sshKey: string;
+  private sshScriptStatus: string;
+  private sshScriptControl: string;
+  private target: string;
+  private lastInconsistency: number;
+  private readonly inconsistancyTolerance: number;
+  
 
   constructor(log: Logging, config: AccessoryConfig, api: API) {
     this.log = log;
     this.name = config.name;
     this.api = api;
-    this.sshString = 'ssh ' + config.sshUser + '@' + config.sshHost + ' -i ' + config.sshKey + ' ' + config.sshScript + ' ';
-    this.target = (this.sshCommandExec('status') == 'closed') ? 'closed' : 'open';
-
-    this.service = new hap.Service.GarageDoorOpener(this.name);
-
-    this.service.getCharacteristic(hap.Characteristic.CurrentDoorState)
-      .on(CharacteristicEventTypes.GET, this.handleCurrentDoorStateGet.bind(this));
-
-    this.service.getCharacteristic(hap.Characteristic.TargetDoorState)
-      .on(CharacteristicEventTypes.GET, this.handleTargetDoorStateGet.bind(this))
-      .on(CharacteristicEventTypes.SET, this.handleTargetDoorStateSet.bind(this));
-
-    this.service.getCharacteristic(hap.Characteristic.ObstructionDetected)
-      .on(CharacteristicEventTypes.GET, this.handleObstructionDetectedGet.bind(this));
-
-    this.informationService = new hap.Service.AccessoryInformation()
-      .setCharacteristic(hap.Characteristic.Manufacturer, "Custom Manufacturer")
-      .setCharacteristic(hap.Characteristic.Model, "Custom Model");
-  }
-
-  handleCurrentDoorStateGet(callback: CharacteristicSetCallback) {
-    var status = this.sshCommandExec('status');
-    this.log.debug('Get Current  -- ' + status);
+    this.service = new this.api.hap.Service.GarageDoorOpener(this.name);
+    this.Characteristic = this.api.hap.Characteristic;
     
-    if (status == 'closed') {
+    this.sshHost = config.sshHost;
+    this.sshUser = config.sshUser;
+    this.sshKey = config.sshKey;
+    this.sshScriptStatus = config.sshScriptStatus;
+    this.sshScriptControl = config.sshScriptControl;
+    this.lastInconsistency = 0;
+    this.inconsistancyTolerance = 10;
+
+    this.target = (this.sshCommandExec(this.sshScriptStatus) == 'closed') ? 'closed' : 'open';
+
+    
+    this.service.getCharacteristic(this.Characteristic.CurrentDoorState)
+      .onGet(this.handleCurrentDoorStateGet.bind(this)); 
+
+    this.service.getCharacteristic(this.Characteristic.TargetDoorState)
+      .onGet(this.handleTargetDoorStateGet.bind(this))
+      .onSet(this.handleTargetDoorStateSet.bind(this));
+
+    this.service.getCharacteristic(this.Characteristic.ObstructionDetected)
+      .onGet(async () => {
+        return false;
+      });
+
+    this.informationService = new this.api.hap.Service.AccessoryInformation()
+      .setCharacteristic(this.Characteristic.Manufacturer, "Custom Manufacturer")
+      .setCharacteristic(this.Characteristic.Model, "Custom Model");
+  }
+
+  async handleCurrentDoorStateGet(): Promise<CharacteristicValue> {
+    var status = this.sshCommandExec(this.sshScriptStatus);
+    
+    this.log.debug('Get Current  -- ' + status + ' ## target: ' + this.target);
+    this.log.debug('Last Inconsistency: ' + this.lastInconsistency);
+    
+    if (status == this.target) {
+      this.lastInconsistency = 0;
+      if (status == 'closed')
+        return this.Characteristic.CurrentDoorState.CLOSED;
+      else
+        return this.Characteristic.CurrentDoorState.OPEN;
+    }
+    else {
+      if (this.lastInconsistency == 0)
+        this.lastInconsistency = Math.floor(Date.now() / 1000);
+      else if (Math.floor(Date.now() / 1000) - this.lastInconsistency > this.inconsistancyTolerance)
+        this.target = status;
+      
       if (this.target == 'open')
-        callback(undefined, hap.Characteristic.CurrentDoorState.OPENING);
+        return this.Characteristic.CurrentDoorState.OPENING;
       else
-        callback(undefined, hap.Characteristic.CurrentDoorState.CLOSED);
-    }
-    else if (status == 'open') {
-      if (this.target == 'closed')
-        callback(undefined, hap.Characteristic.CurrentDoorState.CLOSING);
-      else
-        callback(undefined, hap.Characteristic.CurrentDoorState.OPEN);
-    }
-    else {
-      // Fallback if current is unclear
-      callback(undefined, hap.Characteristic.CurrentDoorState.OPENING);
+        return this.Characteristic.CurrentDoorState.OPENING;
     }
   }
-
-  handleTargetDoorStateGet(callback: CharacteristicSetCallback) {
-    if (this.target == 'closed') {
-      callback(undefined, hap.Characteristic.TargetDoorState.CLOSED);
-    }
-    else {
-      callback(undefined, hap.Characteristic.TargetDoorState.OPEN);
-    }
+  
+  async handleTargetDoorStateGet(): Promise<CharacteristicValue> {
+    if (this.target == 'closed')
+      return this.Characteristic.TargetDoorState.CLOSED;
+    else
+      return this.Characteristic.TargetDoorState.OPEN;
   }
 
-  handleTargetDoorStateSet(value: CharacteristicValue, callback: CharacteristicSetCallback) {  
-    if (value == Characteristic.TargetDoorState.OPEN) {
+  async handleTargetDoorStateSet(value: CharacteristicValue) {
+    if (value == this.Characteristic.TargetDoorState.OPEN) {
       this.target = 'open';
-      this.sshCommandExec('open');
+      this.sshCommandExec(this.sshScriptControl, 'open');
     }
     else {
       this.target = 'closed';
-      this.sshCommandExec('close');
+      this.sshCommandExec(this.sshScriptControl, 'close');
     }
-    callback();
-  }
-
-  handleObstructionDetectedGet(callback: CharacteristicSetCallback) {
-    callback(undefined, false);
   }
 
   identify(): void {
@@ -113,8 +130,12 @@ class GarageCtrl implements AccessoryPlugin {
     ];
   }
   
-  sshCommandExec(command: string): string {
-    var result = execSync(this.sshString + "'" + command + "'", { encoding: 'utf8' });
+  sshCommandExec(script: string, option: string = ''): string {
+  	var command = 'ssh ' + this.sshUser + '@' + this.sshHost + ' -i ' + this.sshKey + ' ' + script + ' ';
+  
+  	this.log.debug('Execute: ' + command + option);
+  
+    var result = execSync(command + option, { encoding: 'utf8' });
     return result.trim();
   }
 }
