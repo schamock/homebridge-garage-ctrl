@@ -27,26 +27,25 @@
   },
   "author": "Christian Brunner",
   "engines": {
-    "homebridge": ">=1.0.0"
+    "homebridge": ">=1.6.0"
   },
   "keywords": [
     "homebridge-plugin"
   ],
   "license": "ISC",
   "files": [
-    "LICENSE",
     "dist"
   ],
   "repository": {
     "type": "git",
-    "url": "git://homebridge.ws3/"
+    "url": "git://github.com/schamock/homebridge-garage-ctrl.git"
   },
   "bugs": {
-    "url": "http://homebridge.ws3/"
+    "url": "https://github.com/schamock/homebridge-garage-ctrl/issues"
   },
   "dependencies": {},
   "devDependencies": {
-    "@types/node": "10.17.60",
+    "@types/node": "*",
     "homebridge": "1.5.1",
     "nodemon": "^2.0.15",
     "rimraf": "^3.0.2",
