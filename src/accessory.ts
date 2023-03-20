@@ -78,21 +78,21 @@ class GarageCtrl implements AccessoryPlugin {
   }
   
   getCurrentStatus(): CharacteristicValue {
-		var status = this.sshCommandExec(this.sshScriptStatus);
-		var returnValue = this.Characteristic.CurrentDoorState.OPEN;
-			
-		if (status == this.target) {
+    var status = this.sshCommandExec(this.sshScriptStatus);
+    var returnValue = this.Characteristic.CurrentDoorState.OPEN;
+      
+    if (status == this.target) {
       this.lastInconsistency = 0;
       returnValue = (status == 'closed') ? this.Characteristic.CurrentDoorState.CLOSED :
                                            this.Characteristic.CurrentDoorState.OPEN;
     }
     else {
-    	// inconsistent state (target != status), due to...
-    	// 1. ... the door is currently moving (no special treatment, if it finishes within
-    	//        [this.inconsistancyTolerance] seconds)
-    	// 2. ... trigger outside of homebridge: adapt target after
-    	//        [this.inconsistancyTolerance] seconds
-    	var now = Math.floor(Date.now() / 1000);
+      // inconsistent state (target != status), due to...
+      // 1. ... the door is currently moving (no special treatment, if it finishes within
+      //        [this.inconsistancyTolerance] seconds)
+      // 2. ... trigger outside of homebridge: adapt target after
+      //        [this.inconsistancyTolerance] seconds
+      var now = Math.floor(Date.now() / 1000);
       if (this.lastInconsistency == 0)
         this.lastInconsistency = now;
       else if (now - this.lastInconsistency > this.inconsistancyTolerance &&
@@ -102,34 +102,34 @@ class GarageCtrl implements AccessoryPlugin {
       
       // return intermediate state
       returnValue = (this.target == 'open') ?
-      							 this.Characteristic.CurrentDoorState.OPENING :
-      							 this.Characteristic.CurrentDoorState.CLOSING;
+                     this.Characteristic.CurrentDoorState.OPENING :
+                     this.Characteristic.CurrentDoorState.CLOSING;
     }    
     return returnValue;
   }
   
   updateCurrentStatus() {
-  	var currentStatus = this.getCurrentStatus();
-  	// Do not push intermediate states without any request from HomeKit
-  	// intermediate states will only be published via handleCurrentDoorStateGet, if
-  	// HomeKit requested to do so
-  	if (currentStatus == this.Characteristic.CurrentDoorState.OPEN ||
-  	    currentStatus == this.Characteristic.CurrentDoorState.CLOSED) {
-  		this.service.getCharacteristic(this.Characteristic.CurrentDoorState)
-  		  .updateValue(currentStatus);
-  		this.log.debug('updateCurrentStatus: ' +
-  		               this.translateStatus(currentStatus, 'current'));
-  	}
-  	else {
-  		this.log.debug('updateCurrentStatus: Skipped update to ' +
-  		               this.translateStatus(currentStatus, 'current'));
-  	}
+    var currentStatus = this.getCurrentStatus();
+    // Do not push intermediate states without any request from HomeKit
+    // intermediate states will only be published via handleCurrentDoorStateGet, if
+    // HomeKit requested to do so
+    if (currentStatus == this.Characteristic.CurrentDoorState.OPEN ||
+        currentStatus == this.Characteristic.CurrentDoorState.CLOSED) {
+      this.service.getCharacteristic(this.Characteristic.CurrentDoorState)
+        .updateValue(currentStatus);
+      this.log.debug('updateCurrentStatus: ' +
+                     this.translateStatus(currentStatus, 'current'));
+    }
+    else {
+      this.log.debug('updateCurrentStatus: Skipped update to ' +
+                     this.translateStatus(currentStatus, 'current'));
+    }
   }
 
   async handleCurrentDoorStateGet(): Promise<CharacteristicValue> {
-  	var currentStatus = this.getCurrentStatus();
-  	this.log.debug('handleCurrentDoorStateGet: ' +
-  	               this.translateStatus(currentStatus, 'current'));
+    var currentStatus = this.getCurrentStatus();
+    this.log.debug('handleCurrentDoorStateGet: ' +
+                   this.translateStatus(currentStatus, 'current'));
     return currentStatus;
   }
   
@@ -163,8 +163,8 @@ class GarageCtrl implements AccessoryPlugin {
   }
   
   sshCommandExec(script: string, option: string = ''): string {
-  	var command = 'ssh ' + this.sshUser + '@' + this.sshHost + ' -i ' + this.sshKey +
-  	              ' ' + script + ' ' + option;
+    var command = 'ssh ' + this.sshUser + '@' + this.sshHost + ' -i ' + this.sshKey +
+                  ' ' + script + ' ' + option;
     var result = execSync(command, { encoding: 'utf8' }).trim();
     
     this.log.debug('Execute: ' + script + ' ## ' + result);
@@ -173,33 +173,33 @@ class GarageCtrl implements AccessoryPlugin {
   }
   
   translateStatus(value: CharacteristicValue, type: string): string {
-  	if (type == 'current') {
-  		switch (value) {
-  			case this.Characteristic.CurrentDoorState.OPEN:
-  				return 'open';
-  			case this.Characteristic.CurrentDoorState.CLOSED:
-  				return 'closed';
-  			case this.Characteristic.CurrentDoorState.OPENING:
-  				return 'opening';
-  			case this.Characteristic.CurrentDoorState.CLOSING:
-  				return 'closing';
-  			case this.Characteristic.CurrentDoorState.STOPPED:
-  				return 'stopped';
-  			default:
-  				return 'error (current)';
-  		}
-  	}
-  	else if (type == 'target') {
-  		switch (value) {
-  			case this.Characteristic.TargetDoorState.OPEN:
-  				return 'open';
-  			case this.Characteristic.TargetDoorState.CLOSED:
-  				return 'closed';
-  			default:
-  				return 'error (target)';
-  		}
-  	}
-  	else
-  		return 'error (?)';
+    if (type == 'current') {
+      switch (value) {
+        case this.Characteristic.CurrentDoorState.OPEN:
+          return 'open';
+        case this.Characteristic.CurrentDoorState.CLOSED:
+          return 'closed';
+        case this.Characteristic.CurrentDoorState.OPENING:
+          return 'opening';
+        case this.Characteristic.CurrentDoorState.CLOSING:
+          return 'closing';
+        case this.Characteristic.CurrentDoorState.STOPPED:
+          return 'stopped';
+        default:
+          return 'error (current)';
+      }
+    }
+    else if (type == 'target') {
+      switch (value) {
+        case this.Characteristic.TargetDoorState.OPEN:
+          return 'open';
+        case this.Characteristic.TargetDoorState.CLOSED:
+          return 'closed';
+        default:
+          return 'error (target)';
+      }
+    }
+    else
+      return 'error (?)';
   }
 }
